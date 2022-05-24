@@ -36,7 +36,7 @@ train["Age"] = train["Age"].fillna(train["Age"].mean())
 test["Age"] = test["Age"].fillna(test["Age"].mean())
 
 # Pclass
-#hot encoding 적용
+#one-hot encoding 적용
 train['Pclass_3']=(train['Pclass']==3)
 train['Pclass_2']=(train['Pclass']==2)
 train['Pclass_1']=(train['Pclass']==1)
@@ -48,14 +48,34 @@ test['Pclass_1']=(test['Pclass']==1)
 train=train.drop(columns='Pclass')
 test=test.drop(columns='Pclass')
 
+#Fare
+#누락된 값 채우기
+train["Fare"] = train["Fare"].fillna(train["Fare"].mean())
+test["Fare"] = test["Fare"].fillna(test["Fare"].mean())
+
+#Ticket
+train=train.drop(columns='Ticket')
+test=test.drop(columns='Ticket')
+
+#Family (new Column)
+train['Family'] = 1 + train['SibSp'] + train['Parch']
+test['Family'] = 1 + test['SibSp'] + test['Parch']
+
+#Solo (new Column)
+train['Solo'] = (train['Family'] == 1)
+test['Solo'] = (test['Family'] == 1)
+
+
+
 #기타 다른 값들 제거
-train = train.drop(['Cabin', 'Embarked', 'Name', 'Ticket', 'PassengerId'],axis=1)
-test = test.drop(['Cabin', 'Embarked', 'Name', 'Ticket'],axis=1)
+train = train.drop(['Cabin','Embarked', 'PassengerId', 'Name'],axis=1)
+test = test.drop(['Cabin', 'Embarked', 'Name'],axis=1)
 
 train.isnull().sum()
 
 test.isnull().sum()
 
+#이상치 제거
 age_mean = train['Age'].mean()
 age_std = train['Age'].std()
 indexNames = train[train['Age'] < age_mean - 3*age_std].index
@@ -73,17 +93,18 @@ train.drop(indexNames , inplace=True)
 from sklearn.linear_model import LogisticRegression
 lr = LogisticRegression()
 
-train_input = train.drop(['Survived', 'Age', 'Parch', 'Fare', 'SibSp'], axis=1)
+
+train_input = train.drop(['Survived', 'Age', 'Parch', 'Fare', 'Solo','Family'], axis=1)
 train_target = train['Survived']
 lr.fit(train_input, train_target)
 
 lr.coef_
 
-predict = lr.predict(test.drop(['PassengerId', 'Age', 'Parch', 'Fare', 'SibSp'], axis=1))
+predict = lr.predict(test.drop(['PassengerId', 'Age', 'Parch', 'Fare', 'Solo', 'Family'], axis=1))
 rs =pd.DataFrame({
     'PassengerId': test['PassengerId'],
     'Survived': predict
 })
 
 print(rs)
-rs.to_csv('result.csv', index=False)
+rs.to_csv('result2.csv', index=False)
