@@ -14,7 +14,7 @@ train = pd.read_csv("./train.csv")
 test = pd.read_csv("./test.csv")
 
 #데이터 프레임 확인
-#train_head()
+#train.head()
 #test.head()
 #train.describe()
 
@@ -57,7 +57,7 @@ test["Fare"] = test["Fare"].fillna(test["Fare"].mean())
 train=train.drop(columns='Ticket')
 test=test.drop(columns='Ticket')
 
-#Family (new Column)
+#Family (new Column) => 있으나 없으나 점수차이 x (Solo를 위해서)
 train['Family'] = 1 + train['SibSp'] + train['Parch']
 test['Family'] = 1 + test['SibSp'] + test['Parch']
 
@@ -75,7 +75,7 @@ train.isnull().sum()
 
 test.isnull().sum()
 
-#이상치 제거
+#이상치 제거 => 있으나 없으나 점수차이 x
 age_mean = train['Age'].mean()
 age_std = train['Age'].std()
 indexNames = train[train['Age'] < age_mean - 3*age_std].index
@@ -94,13 +94,13 @@ from sklearn.linear_model import LogisticRegression
 lr = LogisticRegression()
 
 
-train_input = train.drop(['Survived', 'Age', 'Parch', 'Fare', 'Solo','Family'], axis=1)
+train_input = train.drop(['Survived', 'Age', 'Parch', 'Fare','Family'], axis=1)
 train_target = train['Survived']
 lr.fit(train_input, train_target)
 
 lr.coef_
 
-predict = lr.predict(test.drop(['PassengerId', 'Age', 'Parch', 'Fare', 'Solo', 'Family'], axis=1))
+predict = lr.predict(test.drop(['PassengerId', 'Age', 'Parch', 'Fare', 'Family'], axis=1))
 rs =pd.DataFrame({
     'PassengerId': test['PassengerId'],
     'Survived': predict
@@ -108,3 +108,8 @@ rs =pd.DataFrame({
 
 print(rs)
 rs.to_csv('result2.csv', index=False)
+
+#데이터 프레임 확인
+train.drop(['Survived', 'Age', 'Parch', 'Fare', 'Solo','Family'], axis=1).head()
+#test.head()
+#train.describe()
