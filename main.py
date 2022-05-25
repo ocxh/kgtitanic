@@ -18,25 +18,31 @@ test = pd.read_csv("./test.csv")
 #test.head()
 #train.describe()
 
-#누락된 값 확인
+#누락된 값 확인(훈련 데이터)
+print("train.isnull().sum")
 train.isnull().sum()
+
+#누락된 값 확인(테스트 데이터)
+print("test.isnull().sum()")
 test.isnull().sum()
 
-#전처리(sex,age, embarked, name, cabin, fare, sibsp, parch, ticket)(9)
+#전처리(Sex,Age, Embarked, Name, Cabin, Fare, SibSp, Parch, Ticket, Pclass)(9)  not(PassengerId, Survived)(2)
 
-#sex
+#Sex
 #성별을 숫자로 매핑
 sex_map = {"male": 0, "female": 1}
 train['Sex'] = train['Sex'].map(sex_map)
 test['Sex'] = test['Sex'].map(sex_map)
 
-#Age
+#Age(추가 시 점수 떨어짐)
 #누락된 값 평균으로 채우기
 train["Age"] = train["Age"].fillna(train["Age"].mean())
 test["Age"] = test["Age"].fillna(test["Age"].mean())
 
-# Pclass
+#Pclass
+#one hot encoding 적용 하나 안하나 점수차이 X
 #one-hot encoding 적용
+'''
 train['Pclass_3']=(train['Pclass']==3)
 train['Pclass_2']=(train['Pclass']==2)
 train['Pclass_1']=(train['Pclass']==1)
@@ -47,35 +53,41 @@ test['Pclass_1']=(test['Pclass']==1)
 
 train=train.drop(columns='Pclass')
 test=test.drop(columns='Pclass')
+'''
 
-#Fare
-#누락된 값 채우기
+#Fare(추가 시 점수 떨어짐)
+#누락된 값 채우기 
 train["Fare"] = train["Fare"].fillna(train["Fare"].mean())
 test["Fare"] = test["Fare"].fillna(test["Fare"].mean())
 
-#Ticket
-train=train.drop(columns='Ticket')
-test=test.drop(columns='Ticket')
 
-#Family (new Column) => 있으나 없으나 점수차이 x (Solo를 위해서)
+#Family (새로운 칼럼, 있으나 없으나 점수차이 X) => (Solo칼럼을 만들기 위해서)
 train['Family'] = 1 + train['SibSp'] + train['Parch']
 test['Family'] = 1 + test['SibSp'] + test['Parch']
 
-#Solo (new Column)
+#Solo (새로운 칼럼, 추가 시 점수 오름)
 train['Solo'] = (train['Family'] == 1)
 test['Solo'] = (test['Family'] == 1)
 
+#Parch (제거 시 점수 떨어짐, 그대로 유지)
+
+#SibSp(있으나 없으나 관계 X)
 
 
-#기타 다른 값들 제거
-train = train.drop(['Cabin','Embarked', 'PassengerId', 'Name'],axis=1)
-test = test.drop(['Cabin', 'Embarked', 'Name'],axis=1)
+#값 제거
+#생존과 관계없는 값들 제거
+train = train.drop(['Cabin','Embarked', 'PassengerId', 'Name','Ticket'],axis=1)
+test = test.drop(['Cabin', 'Embarked', 'Name', 'Ticket'],axis=1)
+#추가 시 점수가 떨어지기에 제거
+train = train.drop(['Age','Fare'], axis=1)
+test = test.drop(['Age','Fare'], axis=1)
 
 train.isnull().sum()
 
 test.isnull().sum()
 
 #이상치 제거 => 있으나 없으나 점수차이 x
+'''
 age_mean = train['Age'].mean()
 age_std = train['Age'].std()
 indexNames = train[train['Age'] < age_mean - 3*age_std].index
@@ -89,27 +101,27 @@ indexNames = train[train['Fare'] < fare_mean - 3*fare_std].index
 train.drop(indexNames , inplace=True)
 indexNames = train[train['Fare'] > fare_mean + 3*fare_std].index
 train.drop(indexNames , inplace=True)
+'''
 
 from sklearn.linear_model import LogisticRegression
 lr = LogisticRegression()
 
-
-train_input = train.drop(['Survived', 'Age', 'Parch', 'Fare','Family'], axis=1)
+train_input = train.drop(['Survived'], axis=1)
 train_target = train['Survived']
 lr.fit(train_input, train_target)
 
 lr.coef_
 
-predict = lr.predict(test.drop(['PassengerId', 'Age', 'Parch', 'Fare', 'Family'], axis=1))
+predict = lr.predict(test.drop(['PassengerId'], axis=1))
 rs =pd.DataFrame({
     'PassengerId': test['PassengerId'],
     'Survived': predict
 })
 
 print(rs)
-rs.to_csv('result2.csv', index=False)
+rs.to_csv('result.csv', index=False)
 
-#데이터 프레임 확인
-train.drop(['Survived', 'Age', 'Parch', 'Fare', 'Solo','Family'], axis=1).head()
+#결과 데이터 프레임 확인
+#train.drop(['Survived', 'Age', 'Parch', 'Fare','Family'], axis=1).head()
 #test.head()
 #train.describe()
