@@ -103,11 +103,16 @@ indexNames = train[train['Fare'] > fare_mean + 3*fare_std].index
 train.drop(indexNames , inplace=True)
 '''
 
-from sklearn.linear_model import LogisticRegression
-lr = LogisticRegression()
-
+#train_input, train_target
 train_input = train.drop(['Survived'], axis=1)
 train_target = train['Survived']
+
+#로지스틱 Score: 0.77751
+from sklearn.linear_model import LogisticRegression
+
+lr = LogisticRegression()
+
+
 lr.fit(train_input, train_target)
 
 lr.coef_
@@ -118,8 +123,28 @@ rs =pd.DataFrame({
     'Survived': predict
 })
 
+#결정트리 Score: 0.77751
+from sklearn.tree import DecisionTreeClassifier
+dt = DecisionTreeClassifier(max_depth=4, random_state=42)
+dt.fit(train_input, train_target)
+
+predict = dt.predict(test.drop(['PassengerId'], axis=1))
+rs =pd.DataFrame({
+    'PassengerId': test['PassengerId'],
+    'Survived': predict
+})
+
+#훈련 데이터로 훈련세트와 테스트세트 나누기(Score값 측정용)
+from sklearn.model_selection import train_test_split
+
+train_input, test_input, train_target, test_target = train_test_split(train.drop(['Survived'], axis=1), train['Survived'], random_state=42)
+
+#Score값 측정
+print(dt.score(train_input, train_target))
+print(dt.score(test_input, test_target))
+
 print(rs)
-rs.to_csv('result.csv', index=False)
+rs.to_csv('result1.csv', index=False)
 
 #결과 데이터 프레임 확인
 #train.drop(['Survived', 'Age', 'Parch', 'Fare','Family'], axis=1).head()
