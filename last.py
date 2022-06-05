@@ -48,6 +48,7 @@ for dataset in train_test_data:
   dataset.loc[(dataset['Age'] > 36) & (dataset['Age'] <= 62), 'Age'] = 3
   dataset.loc[ dataset['Age'] > 62, 'Age'] = 4
 """
+
 for dataset in train_test_data:
   dataset.loc[dataset['Age'] <= 10, 'Age'] = 0
   dataset.loc[(dataset['Age'] > 10) & (dataset['Age'] <= 20), 'Age'] = 1
@@ -56,6 +57,7 @@ for dataset in train_test_data:
   dataset.loc[(dataset['Age'] > 40) & (dataset['Age'] <= 50), 'Age'] = 4
   dataset.loc[(dataset['Age'] > 50) & (dataset['Age'] <= 60), 'Age'] = 5
   dataset.loc[ dataset['Age'] > 60, 'Age'] = 6
+
 
 #Pclass
 #one hot encoding 적용 하나 안하나 점수차이 X
@@ -72,9 +74,6 @@ test['Pclass_1']=(test['Pclass']==1)
 train=train.drop(columns='Pclass')
 test=test.drop(columns='Pclass')
 '''
-
-#Fare(추가 시 점수 떨어짐)==============
-#누락된 값 채우기
 
 
 
@@ -157,7 +156,7 @@ test.isnull().sum()
 train_input = train.drop(['Survived'], axis=1)
 train_target = train['Survived']
 
-#그레이디언트 부스팅 Scores:0.78708
+#그레이디언트 부스팅 Scores:0.78708 (그리드서치 적용해도 점수차이 X)
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import cross_validate
 import numpy as np
@@ -174,12 +173,17 @@ rs =pd.DataFrame({
     'Survived': predict
 })
 
-#로지스틱 Score: 0.78468
+#로지스틱 하이퍼파라미터 찾기
+#차이가 없었음
 from sklearn.linear_model import LogisticRegression
+Crange = [1, 10, 20, 30, 40, 50]
+scores = []
+for i in Crange:
+  lr = LogisticRegression(C=i, max_iter=1000)
 
-lr = LogisticRegression()
+  lr.fit(train_input, train_target)
+  scores.append(lr.score(train_input, train_target))
 
-lr.fit(train_input, train_target)
 
 lr.coef_
 
@@ -189,10 +193,40 @@ rs =pd.DataFrame({
     'Survived': predict
 })
 
-#결정트리 Score: 0.76315
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.plot(Crange, scores)
+plt.xlabel('C')
+plt.ylabel('score')
+plt.show()
+
+#로지스틱 Score: 0.78468
+from sklearn.linear_model import LogisticRegression
+
+lr = LogisticRegression(C=1, max_iter=1000)
+
+lr.fit(train_input, train_target)
+print(lr.score(train_input, train_target))
+
+lr.coef_
+
+predict = lr.predict(test.drop(['PassengerId'], axis=1))
+rs =pd.DataFrame({
+    'PassengerId': test['PassengerId'],
+    'Survived': predict
+})
+
+#결정트리 Score: 0.76315 (그리드서치 적용)
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import GridSearchCV
+
+params = {'min_impurity_decrease':[0.0001, 0.0002, 0.0003, 0.0004, 0.0005]}
+
 dt = DecisionTreeClassifier(max_depth=4, random_state=42)
-dt.fit(train_input, train_target)
+gs = GridSearchCV(dt, params, n_jobs=-1)
+gs.fit(train_input, train_target)
+dt = gs.best_estimator_
 
 predict = dt.predict(test.drop(['PassengerId'], axis=1))
 rs =pd.DataFrame({
@@ -200,31 +234,37 @@ rs =pd.DataFrame({
     'Survived': predict
 })
 
-#랜덤포레스트 Score: 0.75358
-from sklearn.model_selection import cross_validate
+#랜덤포레스트 Score: 0.75598 (그리드서치 적용)
+from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 
-rf = RandomForestClassifier(n_jobs=-1, random_state=42)
-scores = cross_validate(rf, train_input, train_target, return_train_score=True, n_jobs=-1)
-#print(np.mean(scores["train_score"]), np.mean(scores['test_score']))
+params = {'min_impurity_decrease':[0.0001, 0.0002, 0.0003, 0.0004, 0.0005]}
 
-rf.fit(train_input, train_target)
-#print(rf.predict(test.drop(["PassengerId"], axis=1)))
+dt = RandomForestClassifier(n_jobs=-1, random_state=42)
+gs = GridSearchCV(dt, params, n_jobs=-1)
+gs.fit(train_input, train_target)
+dt = gs.best_estimator_
 
-predict = rf.predict(test.drop(['PassengerId'], axis=1))
+predict = dt.predict(test.drop(['PassengerId'], axis=1))
 rs =pd.DataFrame({
     'PassengerId': test['PassengerId'],
     'Survived': predict
 })
 
-#엑스트라 트리 Score: 0.75358
+#엑스트라 트리 Score: 0.75358 => Score: 0.77990 (그리드 서치 적용)
+from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import ExtraTreesClassifier
-et = ExtraTreesClassifier(n_jobs=-1, random_state=42)
-scores = cross_validate(et, train_input, train_target, return_train_score=True, n_jobs=-1)
+import numpy as np
 
-et.fit(train_input, train_target)
-predict = et.predict(test.drop(["PassengerId"], axis=1))
+params = {'min_impurity_decrease':[0.0001, 0.0002, 0.0003, 0.0004, 0.0005]}
+
+dt = ExtraTreesClassifier(n_jobs=-1, random_state=42)
+gs = GridSearchCV(dt, params, n_jobs=-1)
+gs.fit(train_input, train_target)
+dt = gs.best_estimator_
+
+predict = dt.predict(test.drop(['PassengerId'], axis=1))
 rs =pd.DataFrame({
     'PassengerId': test['PassengerId'],
     'Survived': predict
